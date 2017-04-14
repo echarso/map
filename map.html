@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
+
+  <style>
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+    svg { width:100%; height: 100% }
+    div.tooltip {     
+      position: absolute;
+      text-align: center;           
+      width: 200px;
+      height: 40px;                 
+      padding: 2px;
+      font: 14px sans-serif;
+      background: lightgrey;
+      border: 0px;      
+      border-radius: 8px;
+      pointer-events: none;
+      font-weight:bold;
+      border-color: grey;
+      box-shadow: 10px 10px 5px #888888;      
+   }
+
+ div.statusclass {     
+      text-align: center;           
+      font: 14px sans-serif;
+      background: white;
+      border: 2px;      
+      border-radius: 8px;
+      font-weight:bold;
+      border-color: grey;
+      box-shadow: 10px 10px 5px #888888;      
+   }
+
+  </style>
+</head>
+
+<body>
+<div>
+ <div class='statusclass' id='status'>
+    <label id="labelscore"> Score</label>
+    <label id="labelcorrect">Correct</label>
+    <label id="labelwrong">Wrong</label><br>
+    <label id="labeltries">Current Tries</label>
+    <label id="labelnoquestions">Question Number</label>
+ </div>
+ <div  class='statusclass' id="question"> 
+        <label  id="questionText">Question </label><br>
+        <button id="goBack" onclick="goBack()">Previous</button>
+        <button id="nextButton" onclick="moveForward()">Next</button>
+ </div>
+ </div>
+ <button onclick="reset()"> - </button>
+ <div id="map" style="width:80%;height:80%;"></div>
+  <script>
+
+    var questionIndex=0;
+    var Score =0;
+    var correctScore=0;
+    var wrongScore=0;
+    var currentTries=0;
+    var g ;
+    
+    var width  = parseFloat(d3.select("#map").style('width'));
+    var height = parseFloat(d3.select("#map").style('height'));
+    console.log("------");
+    console.log(width);
+    console.log(" width " + width +" h "+ height);
+
+
+    var zoom = d3.zoom()
+      .scaleExtent([0, 8])
+      .translateExtent([[0, 0], [width, height]])
+      .extent([[0, 0], [width, height]])
+      .on('zoom', zoomed);
+
+  // d3.select('status').attr('class', 'statusclass');
+
+  function goBack(){
+    questionIndex--;
+    setQuestionPanel( questionIndex);
+  }
+
+  function moveForward(){
+    questionIndex++;
+    setQuestionPanel( questionIndex);
+    
+  }
+
+    function clicked(d) {
+        questionIndex++;
+        currentTries++;
+        
+        let ret = true;//getAnswer();
+
+
+        let questionText=  d3.select("#questionText"); 
+        questionText.html('Question '+questionIndex)
+
+        
+        let scoreL= d3.select("#labelscore");
+        let correctL= d3.select("#labelcorrect");
+        let wrongL= d3.select("#labelwrong");
+        let triesL= d3.select("#labeltries");
+        let noQuestionL= d3.select("#labelnoquestions");
+        let currentTriesL=  d3.select("#labeltries"); 
+
+
+        scoreL.html('fsfs');
+        correctL.html('Correct '+correctScore); 
+        wrongL.html('Wrong '+wrongScore);
+        currentTriesL.html('Current Tries '+currentTries);
+        noQuestionL.html('Number Of Question '+questionIndex);
+
+        return ret;
+   }  
+
+
+   function setQuestionPanel( questionIndex){
+
+        let questionText=  d3.select("#questionText"); 
+        questionText.html('Question '+questionIndex)
+        
+        let scoreL= d3.select("#labelscore");
+        let correctL= d3.select("#labelcorrect");
+        let wrongL= d3.select("#labelwrong");
+        let triesL= d3.select("#labeltries");
+        let noQuestionL= d3.select("#labelnoquestions");
+        let currentTriesL=  d3.select("#labeltries"); 
+
+        scoreL.html('fsfs');
+        correctL.html('Correct '+correctScore); 
+        wrongL.html('Wrong '+wrongScore);
+        currentTriesL.html('Current Tries '+currentTries);
+        noQuestionL.html('Number Of Question '+questionIndex)
+   }
+    
+  var svg = d3.select("#map").append("svg");   
+  svg.call(zoom); 
+
+  var divtooltipbar = d3.select('body')
+        .append('div')
+        .attr('class', 'tooltip')
+        .style('opacity',0);
+
+   // var projection = d3.geoMercator().scale(width / 2 / Math.PI).translate([width / 2, height / 2]);
+    var projection = d3.geoMercator().scale(width / 8).translate([width / 2, 100 + height / 2]);
+
+     //.scale(100)
+      //.translate([width / 2, height / 2])
+
+    var path = d3.geoPath()
+      .projection(projection);
+    
+
+   
+  var url ='worldgeo.json';
+  //var url ='world2.geojson';
+  //var url ='world-110m.v1.json';    
+  
+   // d3.queue()
+    //    .defer(d3.json,url)
+    //    .defer(d3.tsv, 'world-country-names.tsv')
+    //    .await(ready);
+
+d3.json("worldgeo.json", function(error, worldTopoJson){
+
+   //function ready (err, countriesData,names) {
+//      svg.append("path")
+ //       .attr("d", path(geojson))
+        //.datum(topojson.feature(world, world.objects.land))
+    if (error) console.log(error);
+
+    var countriesArray = topojson.feature(worldTopoJson, worldTopoJson.objects.countries).features;  
+
+  // countriesArray = countriesArray.filter(function(d) {
+   // return names.some(function(n) {
+//
+//        if (d.id == n.id) { d.projectValue = 1; return d.name = n.name; }
+//      });
+//    }).sort(function(a, b) {
+//        return a.name.localeCompare(b.name);
+//    });
+    
+
+
+var color = d3.scaleThreshold()
+    .domain(d3.range(2, 10))
+    .range(d3.schemeBlues[9]);
+
+g =  svg.append("g")
+      .attr("class", "countries")
+    .selectAll("path")
+      .data(countriesArray)
+    .enter().append("path")
+      .attr("class", function(d) { })
+      .attr("d", path)
+      .attr('fill', function(d) {return color(d.id);})
+      .style('stroke', 'white')
+    //  .style('stroke-width', 0.4)
+      .on('mouseover', function(d) {
+        console.log(d);
+                      divtooltipbar.html('country : '+d.id + ' , '+d.properties.name);
+                      divtooltipbar.transition().duration(2).style('opacity', .9)
+                                    .style('width','100px')
+                                    .style('height','50px')
+                                    .style('left', (d3.event.pageX) -10 + 'px')
+                                    .style('top', function(){return ((d3.event.pageY) +10) +'px';});
+
+      })
+      .on('mouseout', function(d) {
+              divtooltipbar.html('');
+              divtooltipbar.style('height','0px')
+                          .style('width','0 px')
+                          .style('left','0 px')
+                          .style('opacity', 0);
+       
+      })
+    .on('click',function(d){
+      let ret = clicked(d);
+      if ( ret == true){
+         d3.select(this)
+           .attr('fill', 'green');
+        
+         d3.select(this).transition().duration(1000)
+             .attr('fill', function(d) {return color(d.id);})
+      }else{
+        d3.select(this)
+           .attr('fill', 'red');
+         d3.select(this).transition().duration(1000)
+             .attr('fill', function(d) {return color(d.id);})
+      }
+
+    });
+
+
+  });
+
+function reset() {
+  svg.transition()
+      .duration(750).call( zoom.transform, d3.zoomIdentity);
+}
+
+function zoomed() {
+  g.style('stroke-width', 1.5 / d3.event.transform.k + 'px');
+  g.attr('transform', d3.event.transform);
+}
+
+    
+</script>
+</body>
